@@ -6,6 +6,16 @@ import (
 	"github.com/gorilla/mux"
 )
 
+type apiFunc func(http.ResponseWriter, *http.Request) error
+
+func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := f(w, r); err != nil {
+			// handle the error
+		}
+	}
+}
+
 type APIServer struct {
 	ListenAddr string
 }
