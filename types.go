@@ -8,6 +8,16 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
+type LoginResponse struct {
+	Number int64  `json:"number"`
+	Token  string `json:"token"`
+}
+
+type LoginRequest struct {
+	Number   int64  `json:"number"`
+	Password string `json:"password"`
+}
+
 type TransferRequest struct {
 	ToAccount int `json:"toAccount"`
 	Amount    int `json:"amount"`
