@@ -5,16 +5,9 @@ import (
 	"fmt"
 	"log"
 	"net/http"
-	"strconv"
 
 	"github.com/gorilla/mux"
 )
-
-type apiFunc func(http.ResponseWriter, *http.Request) error
-
-type ApiError struct {
-	Error string `json:"error"`
-}
 
 type APIServer struct {
 	ListenAddr string
@@ -32,7 +25,7 @@ func (s *APIServer) Run() {
 	router := mux.NewRouter()
 
 	router.HandleFunc("/account", makeHTTPHandleFunc(s.handleAccount))
-	router.HandleFunc("/account/{id}", makeHTTPHandleFunc(s.handleAccountByID))
+	router.HandleFunc("/account/{id}", withJWTAuth(makeHTTPHandleFunc(s.handleGetAccountByID), s.Store))
 	router.HandleFunc("/transfer", makeHTTPHandleFunc(s.handleTransfer))
 
 	log.Println("Server running on port: ", s.ListenAddr)
@@ -86,7 +79,7 @@ func (s *APIServer) handleCreateAccount(w http.ResponseWriter, r *http.Request) 
 }
 
 func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request) error {
-	id, err := getId(r)
+	id, err := getID(r)
 	if err != nil {
 		return err
 	}
@@ -100,7 +93,7 @@ func (s *APIServer) handleGetAccountByID(w http.ResponseWriter, r *http.Request)
 }
 
 func (s *APIServer) handleDeleteAccountByID(w http.ResponseWriter, r *http.Request) error {
-	id, err := getId(r)
+	id, err := getID(r)
 	if err != nil {
 		return err
 	}
@@ -118,27 +111,4 @@ func (s *APIServer) handleTransfer(w http.ResponseWriter, r *http.Request) error
 	}
 	defer r.Body.Close()
 	return WriteJSON(w, http.StatusOK, transferReq)
-}
-
-func WriteJSON(w http.ResponseWriter, status int, v any) error {
-	w.Header().Add("Content-Type", "application/json")
-	w.WriteHeader(status)
-	return json.NewEncoder(w).Encode(v)
-}
-
-func makeHTTPHandleFunc(f apiFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		if err := f(w, r); err != nil {
-			WriteJSON(w, http.StatusBadRequest, ApiError{Error: err.Error()})
-		}
-	}
-}
-
-func getId(r *http.Request) (int, error) {
-	idStr := mux.Vars(r)["id"]
-	id, err := strconv.Atoi(idStr)
-	if err != nil {
-		return id, fmt.Errorf("invalid id given %s", idStr)
-	}
-	return id, nil
 }
